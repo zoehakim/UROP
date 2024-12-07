@@ -10,3 +10,5 @@ Dec 2 - Worked some more on DMFT fixing Hamiltonian and impurity greens function
        Current plot (still wrong but a little better I think):
        ![Alt text](image-1.png)
         
+Dec 7 - I fixed some of the logic and the graph looks really good I think. Definitely the closest it has been
+        current plot : ![Alt text](image-2.png)
