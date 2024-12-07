@@ -12,3 +12,6 @@ Dec 2 - Worked some more on DMFT fixing Hamiltonian and impurity greens function
         
 Dec 7 - I fixed some of the logic and the graph looks really good I think. Definitely the closest it has been
         current plot : ![Alt text](image-2.png)
+
+        Edit: I cleaned up the code to make th graph look a little better. I think I am going to move on now to doing it with qiskt
+        current plot: ![Alt text](image-3.png)

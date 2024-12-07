@@ -9,7 +9,7 @@ from scipy.linalg import expm
 Urange = np.array([0,2,4,6,8,10])
 
 #step 2: make an intial guess for the val of hybridization parameter
-V_initial = 1.0 
+V_initial = 10.0 
 
 #step 3: obtain impurity Green's function from QComp as a fxn of time
 def selfConsistency(V, Z):
@@ -51,37 +51,6 @@ def ham(U, V):
 
     return H
 
-# def impGreenFxn(U, V, tvals):
-#     def timeEv(U, V, t):
-#         H = ham(U, V)
-#         return expm(-1j * H * t)
-    
-#     H = ham(U,V)
-#     #print("H: ", H)
-
-    
-#     # Initial state |psi_0> assumed as the impurity ground state
-#     dim = H.shape[0]
-#     psi_0 = np.zeros(dim, dtype=complex)
-#     psi_0[0] = 1.0  # Impurity spin-up state
-    
-#     # Impurity operator (assuming first state corresponds to impurity)
-#     d = np.zeros((dim, dim), dtype=complex)
-#     d[0, 0] = 1.0  # Corresponds to d_sigma annihilation operator
-    
-#     # Compute the real part of G_d(t)
-#     G_d_t_real = []
-#     for t in tvals:
-#         U_t = timeEv(U, V, t)  # e^{-i H t}
-#         U_t_conj = U_t.conj()  # e^{i H t}
-        
-#         d_t = U_t @ d @ U_t_conj  # Time-evolved operator d(t)
-#         G_t = -1j * (psi_0.conj().T @ d_t @ d @ psi_0).item()  # Expectation value
-        
-#         G_d_t_real.append(np.real(G_t))  # Extract the real part
-
-
-#     return np.array(G_d_t_real)
 
 def impGreenFxn(U, V, tvals, t):
     def timeEv(t):
@@ -94,7 +63,7 @@ def impGreenFxn(U, V, tvals, t):
     dim = H.shape[0]
     psi_0 = np.zeros(dim, dtype=complex)
     psi_0[0] = 1.0  # Impurity spin-up state
-    print("psi: ", psi_0)
+    #print("psi: ", psi_0)
     
     # Impurity operator (assuming first state corresponds to impurity)
     d = np.zeros((dim, dim), dtype=complex)
@@ -115,13 +84,13 @@ def impGreenFxn(U, V, tvals, t):
     gReal.append(np.real(great-less))
 
     gReal = np.array(gReal).flatten()
-    return np.heaviside(tvals,1)*gReal
+    return gReal
 
 
 
 #step 4: using ImpGreenfxn find best fit for params and finding 
 def fit_greens_function(tvals, greens_values):
-    print("greens values: ", greens_values)
+    #print("greens values: ", greens_values)
     def model(x, a, w, p):
         return a * np.cos(w * x) + (1 - a) * np.cos(p * x)
 
@@ -135,7 +104,7 @@ def quasiweight(tvals, t, V, U):
     
     denom = V**4 * ((a/w**4) + ((1-a)/p**4))
     if denom == 0:
-        denom = 1
+        denom = 10
 
     return 1 / denom
 
@@ -143,7 +112,7 @@ def quasiweight(tvals, t, V, U):
 
 Zvals = []
 
-t = np.linspace(1, 6, 5)
+t = np.linspace(1, 50, 500)
 V = V_initial
 
 for U in Urange:
