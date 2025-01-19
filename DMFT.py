@@ -6,7 +6,7 @@ from scipy.linalg import expm
 # -----------------------------Simulate two-site DMFT without quantum circuit-------------------------------------#
 
 #step 1: set val of impurity on site interaction energy
-Urange = np.array([0,2,4,6,8,10])
+Urange = np.linspace(1,10,10)
 
 #step 2: make an intial guess for the val of hybridization parameter
 V_initial = 10.0 
@@ -14,7 +14,7 @@ V_initial = 10.0
 #step 3: obtain impurity Green's function from QComp as a fxn of time
 def selfConsistency(V, Z):
     tolerance = 1e-6
-    if np.abs(V**2 - Z) < tolerance:
+    if np.abs(V**2 - Z) <= tolerance:
         return True
     else:
         return False
@@ -36,7 +36,7 @@ def ham(U, V):
     # Impurity term: diagonal
     H[0, 0] = eps_d  # spin up
     H[1, 1] = eps_d  # spin down
-    H[0, 1] = U      # Coulomb interaction (only diagonal term in this basis)
+    H[0, 1] = U      # Coulomb interaction 
     
     # Bath term: diagonal
     
@@ -52,7 +52,7 @@ def ham(U, V):
     return H
 
 
-def impGreenFxn(U, V, tvals, t):
+def impGreenFxn(U, V, t):
     def timeEv(t):
         return expm(-1j * H * t)
     
@@ -83,14 +83,14 @@ def impGreenFxn(U, V, tvals, t):
     less = 1j * (psi_0 @ (plus @ sub) @ psi_0)
     gReal.append(np.real(great-less))
 
-    gReal = np.array(gReal).flatten()
+    #gReal = np.array(gReal).flatten()
     return gReal
 
 
 
 #step 4: using ImpGreenfxn find best fit for params and finding 
 def fit_greens_function(tvals, greens_values):
-    #print("greens values: ", greens_values)
+    print("greens values: ", greens_values)
     def model(x, a, w, p):
         return a * np.cos(w * x) + (1 - a) * np.cos(p * x)
 
@@ -100,7 +100,7 @@ def fit_greens_function(tvals, greens_values):
 #step 5: calculate quasiparticle weight
 def quasiweight(tvals, t, V, U):
     
-    a, w, p = fit_greens_function(tvals, impGreenFxn(U, V, tvals, t))
+    a, w, p = fit_greens_function(tvals, impGreenFxn(U, V, t))
     
     denom = V**4 * ((a/w**4) + ((1-a)/p**4))
     if denom == 0:
@@ -124,6 +124,7 @@ for U in Urange:
         else:
             V = np.sqrt(Z) 
     Zvals.append(Z)
+
 
 
 plt.figure()

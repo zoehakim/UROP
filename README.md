@@ -15,3 +15,6 @@ Dec 7 - I fixed some of the logic and the graph looks really good I think. Defin
 
         Edit: I cleaned up the code to make th graph look a little better. I think I am going to move on now to doing it with qiskt
         current plot: ![Alt text](image-3.png)
+
+Jan 16/18 - Working on DMFT routine again but this time using qiskit circuit to find impurity greens function
+       no plot yet
