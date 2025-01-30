@@ -90,7 +90,7 @@ def impGreenFxn(U, V, t):
 
 #step 4: using ImpGreenfxn find best fit for params and finding 
 def fit_greens_function(tvals, greens_values):
-    print("greens values: ", greens_values)
+    #print("greens values: ", greens_values)
     def model(x, a, w, p):
         return a * np.cos(w * x) + (1 - a) * np.cos(p * x)
 
@@ -104,7 +104,7 @@ def quasiweight(tvals, t, V, U):
     
     denom = V**4 * ((a/w**4) + ((1-a)/p**4))
     if denom == 0:
-        denom = 10
+        denom = 1e-6
 
     return 1 / denom
 
