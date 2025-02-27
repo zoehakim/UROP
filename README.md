@@ -20,3 +20,4 @@ Jan 16/18 - Working on DMFT routine again but this time using qiskit circuit to 
        no plot yet
 
 Feb 27 - Current plot: ![Alt text](image-4.png)
+         Edit: new current plot even though I didn't change any of the code: ![Alt text](image-5.png)
