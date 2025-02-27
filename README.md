@@ -18,3 +18,5 @@ Dec 7 - I fixed some of the logic and the graph looks really good I think. Defin
 
 Jan 16/18 - Working on DMFT routine again but this time using qiskit circuit to find impurity greens function
        no plot yet
+
+Feb 27 - Current plot: ![Alt text](image-4.png)
