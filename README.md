@@ -21,3 +21,8 @@ Jan 16/18 - Working on DMFT routine again but this time using qiskit circuit to 
 
 Feb 27 - Current plot: ![Alt text](image-4.png)
          Edit: new current plot even though I didn't change any of the code: ![Alt text](image-5.png)
+
+Mar 5 - Add python file that does two-site DMFT
+         The plan is to use this script as reference for debugging.
+         Result from "Two-Site-DMFT.py" show same trend as in paoer, but the absolute values are a bit off. Maybe parameter defined differently?
+         ![Alt text](Figure_1.png)
