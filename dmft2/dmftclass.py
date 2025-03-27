@@ -5,6 +5,10 @@ from qiskit.quantum_info import Pauli, SparsePauliOp, Operator, Statevector
 from scipy.optimize import curve_fit
 from scipy.linalg import expm, fractional_matrix_power
 from qiskit.compiler import transpile
+import matplotlib.pyplot as plt
+from functools import reduce
+from qiskit_algorithms.eigensolvers import NumPyEigensolver
+
 
 class DMFTroutine:
     def __init__(self, Urange, Vinit):
@@ -13,78 +17,104 @@ class DMFTroutine:
         self.max_iters=50
         self.tolerance=1e-6
 
-    def get_siam_hamiltonian(self,U,V):
-        # Define the Hamiltonian using tensor products of Pauli operators
-        H = SparsePauliOp.from_list([("ZIZI", U/4), ("XXII", V/2),("YYII",V/2),("IIXX",V/2),("IIYY",V/2)])
-        return H.to_matrix()
-    
-    def trotter_step(self, H, dt):
-        return expm(-1j * dt * H)  # Trotter approx.
-
-    def greens_function(self, U, V, times, num_trotter_steps=20):
-        H_matrix = self.get_siam_hamiltonian(U,V)
-        #print(H_matrix)
-        dt = times[1] - times[0]  # Small time step for trotterization
-        U_t = self.trotter_step(H_matrix, dt / num_trotter_steps)  # Approximate evolution
-    
-
-        simulator = AerSimulator()
-        greens_vals = []
 
 
-        qc = QuantumCircuit(4)
+    def gen_H(self, U, V):
+        """Generate the Hamiltonian matrix H."""
+        ham = SparsePauliOp.from_list([("ZIZI", U/4), ("XXII", V/2),("YYII",V/2),("IIXX",V/2),("IIYY",V/2)])
+        return ham
 
-        qc.h(0)
-        initial_state = Statevector.from_instruction(qc).data.reshape(-1, 1)
-        #print("initial_state", initial_state)
-        
+    def get_U(self, t, H):
+        """Compute the unitary evolution U(t) from the Hamiltonian H."""
+        return expm(-1j * H * t)
+
+    def find_GS(self, U, V):
+        """Find the ground state and energy of the Hamiltonian H."""
+        H = self.gen_H(U,V)
+        eigenvalues, eigenvectors = np.linalg.eigh(H)
+        ground_energy = eigenvalues[0]
+        ground_state = eigenvectors[:, 0]
+        return ground_energy, ground_state
+
+    def get_GFr(self, t, H, gs):
+        """Compute the Green's function at time t."""
+        U = self.get_U(t, H)
         X1 = Pauli("IIIX").to_matrix()
-        #print('X1', X1)
+        return (gs @ (X1 @ U.conj().T @ X1 @ U) @ gs).real
 
-        for t in times:
-            evolved_state = np.linalg.matrix_power(U_t, int(t / dt)) @ initial_state
-    #         print("u conj: ", U_t.conj())
-    #         print("evolved state", evolved_state)
-            expectation_value = np.real(np.conj(evolved_state.T) @ X1 @ evolved_state)
-            #print('expectation value', expctation_value)
-            greens_vals.append(expectation_value)
-        #print('greens vals', greens_vals)
-        return greens_vals
+    def DMFT_step(self, U, V, tmax, plot=False):
+        """Perform a single DMFT step, updating the value of V."""
+        tvals = np.arange(0, tmax, tmax / 5000)
+        g = np.zeros(np.shape(tvals), float)
 
-    def fit_greens_function(self, times, greens_values):
-        greens_values = np.array(greens_values, dtype=float).flatten()
-        times = np.array(times, dtype=float).flatten()
-        greens_values = np.nan_to_num(greens_values, nan=0.0, posinf=0.0, neginf=0.0)
+        H = self.gen_H(U, V)
+        psi = np.array([1] + [0] * 15, dtype=complex)
+        en, gs = self.find_GS(U, V)
 
-        def model(t, a, w, m):
-            return a * np.cos(w * t) + (1 - a) * np.cos(m * t)
+        # Calculate the Green's function for each time value
+        for it, t in enumerate(tvals):
+            g[it] = self.get_GFr(t, H, gs)
 
-        params, _ = curve_fit(model, times, greens_values)
-        return params  # [a, w, m]
+        # FFT to extract frequency components
+        n = len(tvals)
+        dt = tvals[1] - tvals[0]
+        frequencies = np.fft.fftfreq(n, dt)
+        window = np.hamming(n)
+        fft_data = np.fft.fft(g * window)
+        fft_magnitude = np.abs(fft_data)
 
-    def calculate_quasiparticle_weight(self, V, a, w, m):
-        denom = V**4 * ((a / w**4) + ((1 - a) / m**4))
-        if denom == 0:
-            denom = 1e-6  # Avoid division by zero
-        return 1 / denom
+        # Find the peaks in the FFT data
+        mvals = [i for i in range(1, len(fft_data) - 1)
+                if frequencies[i] > 0 and fft_magnitude[i - 1] < fft_magnitude[i] and fft_magnitude[i + 1] < fft_magnitude[i]]
 
-    def self_consistency(self, V, Z):
-        return np.abs(V**2 - Z) <= self.tolerance
+        w1_est = 2 * np.pi * frequencies[mvals[0]]
+        w2_est = 2 * np.pi * frequencies[mvals[1]]
+        a_est = fft_magnitude[mvals[0]] / (fft_magnitude[mvals[0]] + fft_magnitude[mvals[1]])
 
-    def dmft_routine(self):
-        times = np.linspace(0, 10, 50)
-        Z_values = []
+        if plot:
+            # Plot the time-domain signal and FFT
+            plt.subplot(1, 2, 1)
+            plt.plot(tvals, g, label='Time-domain signal')
+            plt.plot(tvals, a_est * np.cos(w1_est * tvals) + (1 - a_est) * np.cos(w2_est * tvals), label='Fit')
+            plt.xlabel('Time (t)')
+            plt.ylabel('Amplitude')
+            plt.title('Time-domain Signal')
 
+            plt.subplot(1, 2, 2)
+            plt.plot(frequencies[:n // 2], fft_magnitude[:n // 2], label='FFT Magnitude')
+            for m in mvals:
+                plt.axvline(frequencies[m], color="k")
+            plt.xlabel('Frequency (Hz)')
+            plt.ylabel('Magnitude')
+            plt.title('FFT of the Signal')
+            plt.tight_layout()
+            plt.show()
+
+        # Update V based on the computed Green's function frequencies
+        Z = 1 / (V**4 * (a_est / (w1_est**4) + (1 - a_est) / (w2_est**4)))
+        mixing_factor = 0.9
+        V_new = mixing_factor * V + (1 - mixing_factor) * np.sqrt(Z)
+        print(f"\t {V} -> {V_new}")
+        return V_new
+
+    def DMFT_run(self, U, V0, tmax):
+        """Run the DMFT loop until convergence."""
+        V = self.DMFT_step(U, V0, tmax)
+        for i in range(100):
+            V_new = self.DMFT_step(U, V, tmax)
+            print(f"\t\t {i} {abs(V - V_new)}")
+            if abs(V - V_new) < 2e-5:
+                break
+            V = V_new
+        return V
+    
+    def findZ(self):
+        Z = []
+        V = self.Vinit
         for U in self.Urange:
-            V = self.Vinit
-            for _ in range(self.max_iters): 
-                greens_vals = self.greens_function(U, V, times)
-                a, w, m = self.fit_greens_function(times, greens_vals)
-                Z = self.calculate_quasiparticle_weight(V, a, w, m)
+            print(U)
+            V = self.DMFT_run(U, V, 150)
+            Z.append(V**2)
 
-                if self.self_consistency(V, Z):
-                    break 
-                V = np.sqrt(Z)
-            Z_values.append(Z)
+        return Z
 
-        return Z_values

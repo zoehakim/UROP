@@ -3,6 +3,7 @@ from scipy.linalg import expm
 import matplotlib.pyplot as plt
 from functools import reduce
 
+
 # Define Pauli matrices and identity
 I = np.array([[1, 0], [0, 1]], dtype=complex)
 X = np.array([[0, 1], [1, 0]], dtype=complex)
@@ -14,6 +15,7 @@ def create_operator(op, qubit_pos, size=4):
     operators = [I] * size
     operators[qubit_pos] = op
     return reduce(np.kron, operators)
+
 
 # Construct four-qubit operators
 X_ops = [create_operator(X, i) for i in range(4)]
@@ -118,7 +120,7 @@ def DMFT_run(U, V0, tmax):
 
 if __name__ == "__main__":
     # Define U values and iterate through them
-    Uvals = np.arange(0.5, 6, 0.5)
+    Uvals = np.arange(0.5,6.0,0.5)
     Z = []
     V = 1.0
     for U in Uvals:
